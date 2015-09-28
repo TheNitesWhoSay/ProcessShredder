@@ -11,7 +11,7 @@ namespace ProcessShredder
     public partial class ProcessShredderGUI : Form, IUpdatable
     {
         /// <summary>
-        ///  An object that tells this GUI to update itself
+        /// An object that tells this GUI to update itself
         /// in the given intervals
         /// </summary>
         private Updater updater = null;
@@ -59,10 +59,10 @@ namespace ProcessShredder
         public void RefreshProcessList()
         {
             int topIndex = getTopIndex();
-            uint[] selectedPids = getSelectedProcessIds();
+            uint[] selectedProcessIds = getSelectedProcessIds();
             ProcessEntry[] processList = getSortedProcesses();
             ListViewItem[] listViewItems = getProcessListItems(processList);
-            int[] selectionIndices = getSelectionIndices(selectedPids, processList);
+            int[] selectionIndices = getSelectionIndices(selectedProcessIds, processList);
 
             listProcesses.BeginUpdate();
             listProcesses.Items.Clear();
@@ -141,28 +141,28 @@ namespace ProcessShredder
         }
         
         /// <summary>Gets all the processIds of the processes selected in the list</summary>
-        /// <returns>A list of process ids</returns>
+        /// <returns>A list of processIds</returns>
         private List<uint> getSelectedProcessIdsList()
         {
             return new List<uint>(getSelectedProcessIds());
         }
         
         /// <summary>
-        /// Gets all the ListView indices that correspond to valid
-        /// processIds in 'pids'
+        /// Gets all ListView indices that correspond to
+        /// valid processIds in 'processIds'
         /// </summary>
-        /// <param name="pids">The process ids to find list view indices for</param>
+        /// <param name="processIds">The process ids to find list view indices for</param>
         /// <param name="processList">A list of processes running on the system</param>
         /// <returns>A list of ListView indices on success, null otherwise</returns>
-        private int[] getSelectionIndices(uint[] pids, ProcessEntry[] processList)
+        private int[] getSelectionIndices(uint[] processIds, ProcessEntry[] processList)
         {
-            if ( pids != null && processList != null )
+            if ( processIds != null && processList != null )
             {
                 List<int> selectionIndices = new List<int>();
                 
-                foreach ( uint pid in pids )
+                foreach ( uint processId in processIds )
                 {
-                    int selectionIndex = getSelectionIndex(pid, processList);
+                    int selectionIndex = getProcessIndex(processId, processList);
                     if ( selectionIndex >= 0 )
                         selectionIndices.Add(selectionIndex);
                 }
@@ -174,17 +174,17 @@ namespace ProcessShredder
         
         /// <summary>
         /// Returns the index of the ProcessEntry in the processList that
-        /// contains the given pid */
+        /// contains the given processId */
         /// </summary>
-        /// <param name="pid">The process id to search for</param>
-        /// <param name="processList">A list of processes to find pid in</param>
+        /// <param name="processId">The process id to search for</param>
+        /// <param name="processList">A list of processes to find processId in</param>
         /// <returns></returns>
-        private int getSelectionIndex(uint pid, ProcessEntry[] processList)
+        private int getProcessIndex(uint processId, ProcessEntry[] processList)
         {
             int foundAt = 0;
             foreach ( ProcessEntry entry in processList )
             {
-                if ( pid == entry.processId )
+                if ( processId == entry.processId )
                     return foundAt;
                 else
                     foundAt++;
@@ -204,7 +204,7 @@ namespace ProcessShredder
         }
         
         /// <summary>Gets the items that make up the process list's contents</summary>
-        /// <param name="processList"></param>
+        /// <param name="processList">A list of processes to put in the ListView</param>
         /// <returns>The items that make up the process list's contents</returns>
         private ListViewItem[] getProcessListItems(ProcessEntry[] processList)
         {
@@ -226,16 +226,17 @@ namespace ProcessShredder
             }
             return items;
         }
-        
-        /// <summary>Finds all child processes for the given rootIds</summary>
+
+        /// <summary>Finds all child processes for the given rootProcessIds</summary>
         /// <param name="searchList">The list of processes to search through for children</param>
         /// <param name="foundList">The returned list of child processes & the root processes</param>
-        /// <param name="rootIds">The list of ancestors for which you are finding descendents</param>
-        /// <returns></returns>
-        private bool findDescendants(List<ProcessEntry> searchList, out List<ProcessEntry> foundList, uint[] rootIds)
+        /// <param name="rootProcessIds">The list of ancestors for which you are finding descendents</param>
+        /// <returns>Whether the operation was successful</returns>
+        private bool findDescendants(List<ProcessEntry> searchList,
+            out List<ProcessEntry> foundList, uint[] rootProcessIds)
         {
             foundList = new List<ProcessEntry>();
-            List<uint> parentIds = new List<uint>(rootIds);
+            List<uint> parentIds = new List<uint>(rootProcessIds);
 
             while ( parentIds.Count > 0 )
             {
@@ -270,33 +271,33 @@ namespace ProcessShredder
         /// <summary>Finds all the processIds in the given process list</summary>
         /// <param name="processList">The process list to get the ids from</param>
         /// <returns>The ids of all the process in the given list</returns>
-        private uint[] pidsFromList(List<ProcessEntry> processList)
+        private uint[] processIdsFromList(List<ProcessEntry> processList)
         {
-            uint[] pids = new uint[processList.Count];
+            uint[] processIds = new uint[processList.Count];
             int i = 0;
             foreach ( ProcessEntry entry in processList )
             {
-                pids[i] = entry.processId;
+                processIds[i] = entry.processId;
                 i++;
             }
-            return pids;
+            return processIds;
         }
 
         /// <summary>
         /// For every processId, the associated processes are hooked,
         /// frozen (by attaching a debugger), then killed
         /// </summary>
-        /// <param name="pidsToKill">A list of process ids to kill</param>
+        /// <param name="processIdsToKill">A list of process ids to kill</param>
         /// <returns>Whether all the processes were killed</returns>
-        private bool freezeAndKill(uint[] pidsToKill)
+        private bool freezeAndKill(uint[] processIdsToKill)
         {
             bool success = false;
             ProcessMod[] processModders = null;
             try
             {
-                processModders = new ProcessMod[pidsToKill.Length];
+                processModders = new ProcessMod[processIdsToKill.Length];
                 int i = 0;
-                foreach ( uint pid in pidsToKill )
+                foreach ( uint processId in processIdsToKill )
                 {
                     processModders[i] = new ProcessMod();
                     i++;
@@ -314,7 +315,7 @@ namespace ProcessShredder
                 // Begin time-sensative area
                 foreach ( ProcessMod pmod in processModders )
                 {
-                    pmod.openWithProcessID(pidsToKill[i]);
+                    pmod.openWithProcessID(processIdsToKill[i]);
                     i++;
                 }
                 foreach ( ProcessMod pmod in processModders )
@@ -348,16 +349,16 @@ namespace ProcessShredder
         private void buttonEndProcesses_Click(object sender, EventArgs e)
         {
             bool includeChilds = checkIncludeChilds.Checked;
-            uint[] pidsToKill = getSelectedProcessIds();
+            uint[] processIdsToKill = getSelectedProcessIds();
             if ( includeChilds )
             {
                 List<ProcessEntry> processList = ProcessMod.getProcessList();
                 List<ProcessEntry> processesToKill = null;
-                if ( findDescendants(processList, out processesToKill, pidsToKill) )
-                    pidsToKill = pidsFromList(processesToKill);
+                if ( findDescendants(processList, out processesToKill, processIdsToKill) )
+                    processIdsToKill = processIdsFromList(processesToKill);
             }
 
-            freezeAndKill(pidsToKill);
+            freezeAndKill(processIdsToKill);
         }
         
       // Static, high potential for relocation

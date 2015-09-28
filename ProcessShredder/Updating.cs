@@ -18,7 +18,7 @@ namespace Updating
     
     /// <summary>
     /// A class that sends timed update messages
-    /// to updateable objects
+    /// to updatable objects
     /// </summary>
     class Updater
     {
@@ -26,7 +26,7 @@ namespace Updating
         public IUpdatable Obj { get; set; }
         
         /// <summary>The time between update events</summary>
-        public int interval = 1000;
+        public int Interval { get; set; }
         
         private System.Timers.Timer timer = null;
         
@@ -35,17 +35,18 @@ namespace Updating
         public Updater(IUpdatable obj)
         {
             Obj = obj;
+            Interval = 1000;
         }
-        
+
         /// <summary>Begins sending update messages</summary>
-        /// <param name="interval">The frequence (in miliseconds) of updates</param>
-        /// <returns>true if the operation succeeds, false otherwise</returns>
+        /// <param name="interval">The frequency (in miliseconds) of updates</param>
+        /// <returns>Whether the operation was a success</returns>
         public bool StartTimedUpdates(int interval)
         {
             if ( interval > 0 )
             {
-                this.interval = interval;
-                timer = new System.Timers.Timer(interval);
+                Interval = interval;
+                timer = new System.Timers.Timer(Interval);
                 timer.Elapsed += OnTimedEvent;
                 timer.AutoReset = false;
                 timer.Enabled = true;
@@ -66,7 +67,7 @@ namespace Updating
                 Obj.TimedUpdate();
 
             if ( timer != null )
-                timer.Interval = interval;
+                timer.Interval = Interval;
         }
     }
 }

@@ -19,14 +19,14 @@ namespace ProcessModder
     /// </summary>
     class ProcessMod : IDisposable
     {
-      // Data
+        // Data
 
         /// <summary>The handle for a hooked process, may be NULL</summary>
         private uint hookedProcess;
         /// <summary>Whether a debugger has been attached to the process</summary>
         private bool debugging;
 
-      // Constructors/Cleanup
+        // Constructors/Cleanup
 
         /// <summary>Constructs a ProcessMod object with no hooked process</summary>
         public ProcessMod()
@@ -40,7 +40,7 @@ namespace ProcessModder
             close();
         }
 
-      // Attempts to find and hook the process with the given information
+        // Attempts to find and hook the process with the given information
 
         /// <summary>
         /// Attempts to hook the process with maximumAccess, minimumAccess
@@ -54,7 +54,7 @@ namespace ProcessModder
         {
             return Hook(processID, minimumAccess, maximumAccess);
         }
-        
+
         /// <summary>
         /// Attempts to hook the process, with a given accessLevel
         /// </summary>
@@ -65,7 +65,7 @@ namespace ProcessModder
         {
             return openWithProcessID(processID, accessLevel, accessLevel);
         }
-        
+
         /// <summary>Attempts to hook the process with maximal access</summary>
         /// <param name="processID">The ID of the process to be hooked</param>
         /// <returns>Whether the process was hooked successfully</returns>
@@ -73,7 +73,7 @@ namespace ProcessModder
         {
             return openWithProcessID(processID, PROCESS_ALL_LEGACY_ACCESS, PROCESS_ALL_ACCESS);
         }
-        
+
         /// <summary>
         /// Attempts to hook the process with maximumAccess, minimumAccess
         /// with WRITE_DAC or at least minimumAccess
@@ -108,7 +108,7 @@ namespace ProcessModder
         {
             return openWithProcessName(processName, PROCESS_ALL_LEGACY_ACCESS, PROCESS_ALL_ACCESS);
         }
-        
+
         /// <summary>
         /// Attempts to hook the process with maximumAccess, minimumAccess
         /// with WRITE_DAC or at least minimumAccess
@@ -155,7 +155,7 @@ namespace ProcessModder
         {
             return openWithWindowName(windowName, PROCESS_ALL_LEGACY_ACCESS, PROCESS_ALL_ACCESS);
         }
-        
+
         /// <summary>
         /// Attempts to hook the process with maximumAccess, minimumAccess
         /// with WRITE_DAC or at least minimumAccess
@@ -190,7 +190,7 @@ namespace ProcessModder
         {
             return openWithProcessHandle(hProcess, PROCESS_ALL_LEGACY_ACCESS, PROCESS_ALL_ACCESS);
         }
-        
+
         /// <summary>Checks whether there is a hooked process that is still open</summary>
         /// <returns>Whether there is a hooked process that is still open</returns>
         public unsafe bool isOpen()
@@ -210,7 +210,7 @@ namespace ProcessModder
                 return false;
             }
         }
-        
+
         /// <summary>Cleans up process hooks, stops debugging, and clears the handle</summary>
         public void close()
         {
@@ -221,13 +221,9 @@ namespace ProcessModder
                     debugging = DebugActiveProcessStop(processId) != 0;
 
                 CloseHandle(hookedProcess);
-                hookedProcess = NULL;
             }
-            else
-            {
-                hookedProcess = NULL;
-                debugging = false;
-            }
+            hookedProcess = NULL;
+            debugging = false;
         }
 
         /// <summary>Writes 'value' to the given address</summary>
@@ -283,7 +279,7 @@ namespace ProcessModder
             readMem<T>(address, ref obj);
             return obj;
         }
-        
+
         /// <summary>Attemps to find the address of a given array</summary>
         /// <param name="baseAddress">The address of the array on success, 0 otherwise</param>
         /// <param name="arrayItems">The array items to search for</param>
@@ -292,7 +288,7 @@ namespace ProcessModder
         {
             return false;
         }
-        
+
         /// <summary>Finds the base address of the hooked process</summary>
         /// <param name="address">Set to the base address of the process on success</param>
         /// <returns>true on success, false otherwise</returns>
@@ -300,7 +296,7 @@ namespace ProcessModder
         {
             return false;
         }
-        
+
         /// <summary>Finds the amount of contiguous memory after startAddress</summary>
         /// <param name="startAddress">The starting point to examine memory at</param>
         /// <param name="size">Set to the size of the memory block on success</param>
@@ -309,13 +305,13 @@ namespace ProcessModder
         {
             return false;
         }
-        
+
         /// <summary>Prints all the threads for this process</summary>
         public void printThreads() // TODO
         {
 
         }
-        
+
         /// <summary>
         /// Prints all system memory and the access this program has to it
         /// </summary>
@@ -327,7 +323,7 @@ namespace ProcessModder
         {
 
         }
-        
+
         /// <summary>Prints information from the provided memory region structure</summary>
         void PrintMemRegionInfo(/*MEMORY_BASIC_INFORMATION &region*/) // TODO
         {
@@ -415,14 +411,14 @@ namespace ProcessModder
                     do // Step through processes
                     {
                         ProcessEntry processEntry = new ProcessEntry();
-                        processEntry.processId = pe32.th32ProcessID;
-                        processEntry.numThreads = pe32.cntThreads;
-                        processEntry.parentProcessId = pe32.th32ParentProcessID;
-                        processEntry.basePriority = pe32.pcPriClassBase;
+                        processEntry.ProcessId = pe32.th32ProcessID;
+                        processEntry.NumThreads = pe32.cntThreads;
+                        processEntry.ParentProcessId = pe32.th32ParentProcessID;
+                        processEntry.BasePriority = pe32.pcPriClassBase;
                         if ( pe32.szExeFile[0] != '\0' ) // Name is null?
-                            processEntry.exeFileName = new string(pe32.szExeFile);
+                            processEntry.ExeFileName = new string(pe32.szExeFile);
                         else
-                            processEntry.exeFileName = "[Null]";
+                            processEntry.ExeFileName = "[Null]";
 
                         processList.Add(processEntry);
                     }
@@ -434,8 +430,8 @@ namespace ProcessModder
 
             return processList;
         }
-        
-      // Hooks the process with the given process ID
+
+        // Hooks the process with the given process ID
 
         /// <summary>Attempts to hook the process with at least minimumAccess</summary>
         /// <param name="processID">The ID of the process to be hooked</param>
@@ -638,7 +634,7 @@ namespace ProcessModder
             return HookProcess(processID, desiredAccess) ||
                 HookProcess(processID, minimumAccess);
         }
-        
+
         /// <summary>
         /// Attempts to hook the process with the given processID with the given access levels.
         /// The first attempt is with desiredAccess, then minimumAccess|WRITE_DAC, (if
@@ -707,7 +703,7 @@ namespace ProcessModder
             }
             return false;
         }
-        
+
         /// <summary>
         /// Prints the details of the protection flags from a MEMORY_BASIC_INFORMATION struct
         /// </summary>
@@ -837,7 +833,6 @@ namespace ProcessModder
             for this when editing code in this class.
             
             Windows psedo equivilants (not comprehensive)...
-
             HWND = uint
             HANDLE = uint
             LONG = int
@@ -983,9 +978,9 @@ namespace ProcessModder
         [DllImport("Advapi32.dll")]
         public static extern uint IsValidAcl(uint pAcl);
     }
-    
+
     /// <summary>
-    /// A managed versino of the windows PROCESSENTRY32 struct,
+    /// A managed version of the windows PROCESSENTRY32 struct,
     /// uses a string rather than a character array for the exe
     /// file name, excludes unused fields and the struct size field,
     /// and simplifies names
@@ -993,34 +988,34 @@ namespace ProcessModder
     public struct ProcessEntry
     {
         /// <summary>th32ProcessID - The process identifier</summary>
-        public uint processId;
-        
+        public uint ProcessId;
+
         /// <summary>
         /// cntThreads - The number of execution threads
         /// started by the process
         /// </summary>
-        public uint numThreads;
-        
+        public uint NumThreads;
+
         /// <summary>
         /// th32ParentProcessID - The identifier of the process
         /// that created this process (its parent)
         /// </summary>
-        public uint parentProcessId;
-        
+        public uint ParentProcessId;
+
         /// <summary>
         /// pcPriClassBase - The base priority of any threads
         /// created by this process
         /// </summary>
-        public int basePriority;
-        
+        public int BasePriority;
+
         /// <summary>
         /// szExeFile - The name of the executable file for
         /// the process; not necessarily complete,
         /// see online documentation for PROCESSENTRY32
         /// </summary>
-        public string exeFileName;
+        public string ExeFileName;
     }
-    
+
     /// <summary>A class for finding the sizes of types and variables</summary>
     public static class Sizes
     {
@@ -1031,7 +1026,7 @@ namespace ProcessModder
         {
             return FetchSizeOf(typeof(T));
         }
-        
+
         /// <summary>Retrieves the size of the type of obj</summary>
         /// <typeparam name="T">The type you will be getting the size of</typeparam>
         /// <param name="obj">The object whose type you will get the size ofwe</param>
@@ -1040,7 +1035,7 @@ namespace ProcessModder
         {
             return FetchSizeOf(typeof(T));
         }
-        
+
         /// <summary>Retrieves the size of 'type'</summary>
         /// <param name="type">The type to get the size of</param>
         /// <returns>The size of the given type</returns>
@@ -1048,7 +1043,7 @@ namespace ProcessModder
         {
             return FetchSizeOf(type);
         }
-        
+
         /// <summary>Gets the size of the specified type</summary>
         /// <param name="type">The type to get the size of</param>
         /// <returns>The size of the given type on success, 0 otherwise</returns>
@@ -1068,11 +1063,11 @@ namespace ProcessModder
             else
                 return CalcSizeOf(type);
         }
-        
+
         /// <summary>Attempst to get the size of 'type' from the cache</summary>
         /// <param name="type">The type to get the size of</param>
         /// <param name="size">Set to the size of type on success, 0 otherwise</param>
-        /// <returns>True on success, false otherwise</returns>
+        /// <returns>true on success, false otherwise</returns>
         private static bool GetCachedSizeOf(Type type, out int size)
         {
             size = 0;
@@ -1092,7 +1087,7 @@ namespace ProcessModder
             }
             return size > 0;
         }
-        
+
         /// <summary>
         /// Attemps to calculate the size of 'type', and caches
         /// the size if it is valid (size > 0)
@@ -1116,7 +1111,7 @@ namespace ProcessModder
             }
             return typeSize;
         }
-        
+
         /// <summary>Calculates the size of a type using dynamic methods</summary>
         /// <param name="type">The type to get the size of</param>
         /// <returns>The type's size on success, 0 otherwise</returns>
@@ -1141,10 +1136,10 @@ namespace ProcessModder
             }
             return 0;
         }
-        
+
         /// <summary>Attempts to allocate the typeSizesCache</summary>
         /// <returns>Whether the typeSizesCache is allocated</returns>
-        private static bool CreateCache()
+        private static void CreateCache()
         {
             if ( typeSizeCache == null )
             {
@@ -1159,15 +1154,14 @@ namespace ProcessModder
                     typeSizeCache = null;
                 }
             }
-            return typeSizeCache != null;
         }
-        
+
         /// <summary>Static constructor for Sizes, sets typeSizeCache to null</summary>
         static Sizes()
         {
             CreateCache();
         }
-        
+
         /// <summary>Caches the calculated size of various types</summary>
         private static Dictionary<Type, int> typeSizeCache;
     }

@@ -5,7 +5,7 @@ namespace ProcessShredder
 {
     static class EntryPoint
     {
-        /// <summary>The entry point for the application</summary>
+        /// <summary>The default entry point for a windows form application</summary>
         [STAThread]
         static void Main()
         {
