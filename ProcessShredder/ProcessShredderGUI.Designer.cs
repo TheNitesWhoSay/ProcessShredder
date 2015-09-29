@@ -41,6 +41,9 @@ namespace ProcessShredder
             // 
             // listProcesses
             // 
+            this.listProcesses.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.listProcesses.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this.ColName,
             this.ColPID,
@@ -51,7 +54,7 @@ namespace ProcessShredder
             this.listProcesses.Size = new System.Drawing.Size(365, 428);
             this.listProcesses.TabIndex = 0;
             this.listProcesses.UseCompatibleStateImageBehavior = false;
-            this.listProcesses.ColumnClick += new ColumnClickEventHandler(ColumnClick);
+            this.listProcesses.ColumnClick += new System.Windows.Forms.ColumnClickEventHandler(this.ColumnClick);
             // 
             // ColName
             // 
@@ -72,6 +75,7 @@ namespace ProcessShredder
             // 
             // checkIncludeChilds
             // 
+            this.checkIncludeChilds.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.checkIncludeChilds.AutoSize = true;
             this.checkIncludeChilds.Location = new System.Drawing.Point(12, 452);
             this.checkIncludeChilds.Name = "checkIncludeChilds";
@@ -82,6 +86,7 @@ namespace ProcessShredder
             // 
             // buttonEndProcesses
             // 
+            this.buttonEndProcesses.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.buttonEndProcesses.Location = new System.Drawing.Point(264, 446);
             this.buttonEndProcesses.Name = "buttonEndProcesses";
             this.buttonEndProcesses.Size = new System.Drawing.Size(113, 23);
@@ -98,7 +103,6 @@ namespace ProcessShredder
             this.Controls.Add(this.buttonEndProcesses);
             this.Controls.Add(this.checkIncludeChilds);
             this.Controls.Add(this.listProcesses);
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.Fixed3D;
             this.Name = "ProcessShredderGUI";
             this.Text = "Process Shredder";
             this.Load += new System.EventHandler(this.ProcessShredderGUI_Load);
