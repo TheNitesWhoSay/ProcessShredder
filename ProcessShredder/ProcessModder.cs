@@ -211,7 +211,9 @@ namespace ProcessModder
             }
         }
 
-        /// <summary>Cleans up process hooks, stops debugging, and clears the handle</summary>
+        /// <summary>
+        /// Cleans up process hooks, stops debugging, and clears the handle
+        /// </summary>
         public void close()
         {
             if ( isOpen() )
@@ -306,7 +308,9 @@ namespace ProcessModder
             return false;
         }
 
-        /// <summary>Prints all the threads for this process</summary>
+        /// <summary>
+        /// Prints all the threads for this process
+        /// </summary>
         public void printThreads() // TODO
         {
 
@@ -324,7 +328,9 @@ namespace ProcessModder
 
         }
 
-        /// <summary>Prints information from the provided memory region structure</summary>
+        /// <summary>
+        /// Prints information from the provided memory region structure
+        /// </summary>
         void PrintMemRegionInfo(/*MEMORY_BASIC_INFORMATION &region*/) // TODO
         {
 
@@ -431,8 +437,67 @@ namespace ProcessModder
             return processList;
         }
 
-        // Hooks the process with the given process ID
+        /// <summary>Gets the Id of the calling process</summary>
+        /// <returns>The Id of the calling process</returns>
+        public static uint getCurrentProcessId()
+        {
+            return GetCurrentProcessId();
+        }
 
+        /// <summary>
+        /// Gets the username associated with the given processId
+        /// </summary>
+        /// <param name="processId">The Id whose username you wish to find</param>
+        /// <returns>The username assocated with the given processId</returns>
+        public static unsafe string getUsername(uint processId)
+        {
+            if ( processId == 0 || processId == 4 )
+                return "SYSTEM";
+
+            string username = "UNKNOWN";
+            using ( ProcessMod process = new ProcessMod() )
+            {
+                if ( process.openWithProcessID(processId, PROCESS_QUERY_INFORMATION, PROCESS_QUERY_LIMITED_INFORMATION) )
+                {
+                    uint tokenHandle = NULL;
+                    if ( OpenProcessToken(process.getHandle(), TOKEN_QUERY, &tokenHandle) != 0 )
+                    {
+                        uint returnSize = 0, destSize = 0;
+                        TokenUser* userStruct = (TokenUser*)NULL;
+                        if ( GetTokenInformation(tokenHandle, TOKEN_INFORMATION_CLASS.TokenUser, userStruct,
+                                0, &returnSize) == FALSE )
+                        {
+                            userStruct = (TokenUser*)HeapAlloc(heap, HEAP_ZERO_MEMORY, returnSize);
+                            if ( (uint)userStruct != NULL )
+                            {
+                                if ( GetTokenInformation(tokenHandle, TOKEN_INFORMATION_CLASS.TokenUser,
+                                        userStruct, returnSize, &destSize) != FALSE )
+                                {
+                                    SID_NAME_USE name;
+                                    uint domainSize = 260;
+                                    FixedWideString dest, domain;
+                                    if ( LookupAccountSidW((char*)NULL, userStruct->User.Sid, dest.str, &destSize,
+                                        domain.str, &domainSize, &name) != 0 )
+                                    {
+                                        username = new string(dest.str);
+                                    }
+                                }
+                                HeapFree(GetProcessHeap(), 0, (byte*)userStruct);
+                            }
+                        }
+                        CloseHandle(tokenHandle);
+                    }
+                    else
+                    {
+                        username = "PROTECTED";
+                    }
+
+                    process.close();
+                }
+            }
+            return username;
+        }
+        
         /// <summary>Attempts to hook the process with at least minimumAccess</summary>
         /// <param name="processID">The ID of the process to be hooked</param>
         /// <param name="minimumAccess">The minimum access with which to hook the process</param>
@@ -556,7 +621,9 @@ namespace ProcessModder
             return success;
         }
 
-        /// <summary>Releases any elevated debug privileges this process holds</summary>
+        /// <summary>
+        /// Releases any elevated debug privileges this process holds
+        /// </summary>
         protected unsafe void ReleaseDebugPrivileges()
         {
             FixedWideString seDebugName;
@@ -845,6 +912,8 @@ namespace ProcessModder
         public const uint PROCESS_ALL_LEGACY_ACCESS = 0x100FFB;
         public const uint WRITE_DAC = 0x40000;
         public const uint READ_CONTROL = 0x00020000;
+        public const uint PROCESS_QUERY_INFORMATION = 0x0400;
+        public const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
         private static uint heap = GetProcessHeap();
         private const uint NULL = 0;
         private const uint TRUE = 1;
@@ -869,6 +938,16 @@ namespace ProcessModder
             SE_KERNEL_OBJECT = 6
         };
 
+        public enum SID_NAME_USE
+        {
+
+        };
+
+        public enum TOKEN_INFORMATION_CLASS
+        {
+            TokenUser = 1
+        };
+
         internal struct LUID
         {
             public uint LowPart;
@@ -887,6 +966,22 @@ namespace ProcessModder
             public LuidAndAttributes Privileges; // Usually an array of privileges, only using one in this context
         }
 
+        internal struct SID
+        {
+
+        }
+
+        internal unsafe struct SidAndAttributes
+        {
+            public SID* Sid;
+            public uint Attributes;
+        }
+
+        internal struct TokenUser
+        {
+            public SidAndAttributes User;
+        }
+
         internal struct ACL
         {
             // As only the pointer is used, the details are unimportant
@@ -896,8 +991,10 @@ namespace ProcessModder
             public ushort AceCount;
             public ushort Sbz2;*/
         }
-
-        /* A structure mirroring the windows PROCESSENTRY32 struct */
+        
+        /// <summary>
+        /// A structure mirroring the windows PROCESSENTRY32 struct
+        /// </summary>
         internal unsafe struct ProcessEntry32
         {
             public uint dwSize;
@@ -940,6 +1037,8 @@ namespace ProcessModder
         [DllImport("Kernel32.dll")]
         public static extern uint GetCurrentProcess();
         [DllImport("Kernel32.dll")]
+        public static extern uint GetCurrentProcessId();
+        [DllImport("Kernel32.dll")]
         public static extern uint LocalFree(uint hMem);
         [DllImport("Kernel32.dll")]
         public static extern uint GetCurrentThread();
@@ -977,6 +1076,12 @@ namespace ProcessModder
         public static extern uint AdjustTokenPrivileges(uint TokenHandle, uint DisableAllPrivileges, uint NewState, uint BufferLength, uint PreviousState, uint ReturnLength);
         [DllImport("Advapi32.dll")]
         public static extern uint IsValidAcl(uint pAcl);
+        [DllImport("Advapi32.dll")]
+        public static unsafe extern uint OpenProcessToken(uint ProcessHandle, uint DesiredAccess, uint* TokenHandle);
+        [DllImport("Advapi32.dll")]
+        public static unsafe extern uint GetTokenInformation(uint TokenHandle, TOKEN_INFORMATION_CLASS TokenInformationClass, void* TokenInformation, uint TokenInformationLength, uint* ReturnLength);
+        [DllImport("Advapi32.dll")]
+        public static unsafe extern uint LookupAccountSidW(char* lpSystemName, SID* lpSid, char* lpName, uint* cchName, char* lpReferencedDomainName, uint* cchReferencedDomainName, SID_NAME_USE* peUse);
     }
 
     /// <summary>
@@ -987,7 +1092,9 @@ namespace ProcessModder
     /// </summary>
     public struct ProcessEntry
     {
-        /// <summary>th32ProcessID - The process identifier</summary>
+        /// <summary>
+        /// th32ProcessID - The process identifier
+        /// </summary>
         public uint ProcessId;
 
         /// <summary>
@@ -1016,7 +1123,9 @@ namespace ProcessModder
         public string ExeFileName;
     }
 
-    /// <summary>A class for finding the sizes of types and variables</summary>
+    /// <summary>
+    /// A class for finding the sizes of types and variables
+    /// </summary>
     public static class Sizes
     {
         /// <summary>Retrieves the size of the generic type T</summary>
@@ -1156,13 +1265,17 @@ namespace ProcessModder
             }
         }
 
-        /// <summary>Static constructor for Sizes, sets typeSizeCache to null</summary>
+        /// <summary>
+        /// Static constructor for Sizes, sets typeSizeCache to null
+        /// </summary>
         static Sizes()
         {
             CreateCache();
         }
 
-        /// <summary>Caches the calculated size of various types</summary>
+        /// <summary>
+        /// Caches the calculated size of various types
+        /// </summary>
         private static Dictionary<Type, int> typeSizeCache;
     }
 }

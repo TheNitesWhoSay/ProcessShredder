@@ -1,8 +1,0 @@
-This is an incomplete remake of one of my antiquated C++ projects.
-
-The following remains to be done:
-	- Preventing ProcessShredder from attempting to terminate/freeze itself when selected, and rather have it exit gracefully after terminating/freezing the other selections.
-	- Fetching the username processes belong too.
-	- Sorting based on column clicks.
-	- Identifying processes under windows’ DRM protection (protected s.t. only transient kernel hacks enable hooking).
-	- Politely calling for processes under windows’ DRM protection to close.

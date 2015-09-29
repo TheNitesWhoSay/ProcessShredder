@@ -22,13 +22,15 @@ namespace Updating
     /// </summary>
     class Updater
     {
-        /// <summary>The object being updated</summary>
+        /// <summary>
+        /// The object being updated
+        /// </summary>
         public IUpdatable Obj { get; set; }
         
-        /// <summary>The time between update events</summary>
+        /// <summary>
+        /// The time between update events
+        /// </summary>
         public int Interval { get; set; }
-        
-        private System.Timers.Timer timer = null;
         
         /// <summary>Constructs a updater for the given object</summary>
         /// <param name="obj">The object that will recieve updates</param>
@@ -69,5 +71,7 @@ namespace Updating
             if ( timer != null )
                 timer.Interval = Interval;
         }
+
+        private System.Timers.Timer timer = null;
     }
 }

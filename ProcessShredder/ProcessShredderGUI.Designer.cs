@@ -1,4 +1,6 @@
-﻿namespace ProcessShredder
+﻿using System.Windows.Forms;
+
+namespace ProcessShredder
 {
     partial class ProcessShredderGUI
     {
@@ -49,6 +51,7 @@
             this.listProcesses.Size = new System.Drawing.Size(365, 428);
             this.listProcesses.TabIndex = 0;
             this.listProcesses.UseCompatibleStateImageBehavior = false;
+            this.listProcesses.ColumnClick += new ColumnClickEventHandler(ColumnClick);
             // 
             // ColName
             // 
