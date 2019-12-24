@@ -356,12 +356,12 @@ namespace ProcessShredder
                     in a way that minimizes the target processes reactability
                     some amount of optimization could be done here including:
                    - Move this process to a higher execution priority
-                   - Get debug privileges only once before this begins
                    - Arrange the processes such that related groups are killed
                       together, parents first, smaller before larger groups
                    - Use less client-friendly open code (single access level)
                    - Load and use unamanged C code */
 
+                ProcessMod.GetDebugPrivileges();
                 // Begin time-sensative area
                 for ( i = 0; i < numProcesses; i++ )
                     processModders[i].openWithProcessID(idsToKillQuick[i]);
@@ -372,6 +372,7 @@ namespace ProcessShredder
                 for ( i = 0; i < numProcesses; i++ )
                     processModders[i].terminateProcess();
                 // End time-sensative area
+                ProcessMod.ReleaseDebugPrivileges();
 
                 success = true;
                 foreach ( ProcessMod pmod in processModders )

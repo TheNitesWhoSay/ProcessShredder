@@ -21,6 +21,8 @@ namespace ProcessModder
     {
         // Data
 
+        /// <summary>Whether this program has the SE_DEBUG_NAME privilege</summary>
+        private static bool haveDebugPrivileges = false;
         /// <summary>The handle for a hooked process, may be NULL</summary>
         private uint hookedProcess;
         /// <summary>Whether a debugger has been attached to the process</summary>
@@ -228,6 +230,13 @@ namespace ProcessModder
             debugging = false;
         }
 
+        /// <summary>Determines whether the calling process is running with the SE_DEBUG_NAME privilege</summary>
+        /// <returns>Whether the calling process is running with the SE_DEBUG_NAME privilege</returns>
+        public static bool isDebugElevated()
+        {
+            return haveDebugPrivileges;
+        }
+
         /// <summary>Writes 'value' to the given address</summary>
         /// <typeparam name="T">The type of value to write to memory</typeparam>
         /// <param name="address">The address in memory to write too</param>
@@ -341,6 +350,7 @@ namespace ProcessModder
         public bool freezeProcess()
         {
             bool success = false;
+            bool hadDebugPrivs = haveDebugPrivileges;
             if ( isOpen() && GetDebugPrivileges() )
             {
                 uint processId = GetProcessId(hookedProcess);
@@ -354,7 +364,9 @@ namespace ProcessModder
                     else if ( GetLastError() == ERROR_NOT_SUPPORTED )
                         Console.WriteLine("Cannot freeze 64bit applications with a 32bit process!");
                 }
-                ReleaseDebugPrivileges();
+
+                if ( !hadDebugPrivs )
+                    ReleaseDebugPrivileges();
             }
             return success;
         }
@@ -497,7 +509,64 @@ namespace ProcessModder
             }
             return username;
         }
-        
+
+        /// <summary>Attempts to get elevated debug privileges for this process</summary>
+        /// <returns>Whether elevated debug privileges were received</returns>
+        public static unsafe bool GetDebugPrivileges()
+        {
+            if ( haveDebugPrivileges )
+                return true;
+
+            FixedWideString seDebugName;
+            for ( int i = 0; i < SE_DEBUG_NAME.Length; i++ )
+                seDebugName.str[i] = SE_DEBUG_NAME[i];
+            seDebugName.str[SE_DEBUG_NAME.Length] = '\0';
+
+            bool success = false;
+            uint desiredAccess = TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY;
+            uint hToken = 0;
+            if ( OpenThreadToken(GetCurrentThread(), desiredAccess, TRUE, (uint)(&hToken)) != 0 ) // Try opening this threads token
+            {
+                success = SetPrivilege(hToken, seDebugName.str, TRUE);
+                CloseHandle(hToken);
+            }
+            else if ( GetLastError() == ERROR_NO_TOKEN && // This thread had no token
+                ImpersonateSelf(SecurityImpersonation) != 0 && // Create a token for this thread
+                OpenThreadToken(GetCurrentThread(), desiredAccess, TRUE, (uint)(&hToken)) != 0 ) // Open the created token
+            {
+                success = SetPrivilege(hToken, seDebugName.str, TRUE); // Enable debug privileges
+                CloseHandle(hToken);
+            }
+            haveDebugPrivileges = success;
+            return success;
+        }
+
+        /// <summary>
+        /// Releases any elevated debug privileges this process holds
+        /// </summary>
+        public static unsafe void ReleaseDebugPrivileges()
+        {
+            if ( !haveDebugPrivileges )
+                return;
+
+            FixedWideString seDebugName;
+            for ( int i = 0; i < SE_DEBUG_NAME.Length; i++ )
+                seDebugName.str[i] = SE_DEBUG_NAME[i];
+            seDebugName.str[SE_DEBUG_NAME.Length] = '\0';
+
+            uint hToken;
+            uint desiredAccess = TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY;
+
+            // Try opening this threads token
+            if ( OpenThreadToken(GetCurrentThread(), desiredAccess, TRUE, (uint)(&hToken)) != 0 )
+            {
+                if ( SetPrivilege(hToken, seDebugName.str, FALSE) ) // Disable debug privileges
+                    haveDebugPrivileges = false;
+
+                CloseHandle(hToken); // Close the token
+            }
+        }
+
         /// <summary>Attempts to hook the process with at least minimumAccess</summary>
         /// <param name="processID">The ID of the process to be hooked</param>
         /// <param name="minimumAccess">The minimum access with which to hook the process</param>
@@ -522,11 +591,13 @@ namespace ProcessModder
         protected bool HookWithDebugMod(uint processID, uint minimumAccess, uint desiredAccess)
         {
             bool success = false;
+            bool hadDebugPrivs = haveDebugPrivileges;
             if ( GetDebugPrivileges() )
             {
                 // Guarantees desiredAccess for valid ids unless DRM protection is active
                 success = HookProcess(processID, minimumAccess, desiredAccess);
-                ReleaseDebugPrivileges();
+                if ( !hadDebugPrivs )
+                    ReleaseDebugPrivileges();
             }
             return success;
         }
@@ -594,60 +665,12 @@ namespace ProcessModder
             return result == ERROR_SUCCESS;
         }
 
-        /// <summary>Attempts to get elevated debug privileges for this process</summary>
-        /// <returns>Whether elevated debug privileges were received</returns>
-        protected unsafe bool GetDebugPrivileges()
-        {
-            FixedWideString seDebugName;
-            for ( int i = 0; i < SE_DEBUG_NAME.Length; i++ )
-                seDebugName.str[i] = SE_DEBUG_NAME[i];
-            seDebugName.str[SE_DEBUG_NAME.Length] = '\0';
-
-            bool success = false;
-            uint desiredAccess = TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY;
-            uint hToken = 0;
-            if ( OpenThreadToken(GetCurrentThread(), desiredAccess, TRUE, (uint)(&hToken)) != 0 ) // Try opening this threads token
-            {
-                success = SetPrivilege(hToken, seDebugName.str, TRUE);
-                CloseHandle(hToken);
-            }
-            else if ( GetLastError() == ERROR_NO_TOKEN && // This thread had no token
-                ImpersonateSelf(SecurityImpersonation) != 0 && // Create a token for this thread
-                OpenThreadToken(GetCurrentThread(), desiredAccess, TRUE, (uint)(&hToken)) != 0 ) // Open the created token
-            {
-                success = SetPrivilege(hToken, seDebugName.str, TRUE); // Enable debug privileges
-                CloseHandle(hToken);
-            }
-            return success;
-        }
-
-        /// <summary>
-        /// Releases any elevated debug privileges this process holds
-        /// </summary>
-        protected unsafe void ReleaseDebugPrivileges()
-        {
-            FixedWideString seDebugName;
-            for ( int i = 0; i < SE_DEBUG_NAME.Length; i++ )
-                seDebugName.str[i] = SE_DEBUG_NAME[i];
-            seDebugName.str[SE_DEBUG_NAME.Length] = '\0';
-
-            uint hToken;
-            uint desiredAccess = TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY;
-
-            // Try opening this threads token
-            if ( OpenThreadToken(GetCurrentThread(), desiredAccess, TRUE, (uint)(&hToken)) != 0 )
-            {
-                SetPrivilege(hToken, seDebugName.str, FALSE); // Disable debug privileges 			
-                CloseHandle(hToken); // Close the token
-            }
-        }
-
         /// <summary>Changes a privilege (used for debug privileges)</summary>
         /// <param name="hToken">The token to alter privileges for</param>
         /// <param name="Privilege">The privilege to set</param>
         /// <param name="bEnablePrivilege">The new state of the privilege</param>
         /// <returns>Whether the privilege was changed successfully</returns>
-        protected unsafe bool SetPrivilege(uint hToken, char* Privilege, uint bEnablePrivilege)
+        protected static unsafe bool SetPrivilege(uint hToken, char* Privilege, uint bEnablePrivilege)
         {
             TokenPrivilege tp, tpPrevious;
             uint cbPrevious = (uint)sizeof(TokenPrivilege);
@@ -816,6 +839,18 @@ namespace ProcessModder
                 writer.Write((bool)(object)obj);
             else if ( typeof(T) == typeof(object) )
                 return false;
+            else
+            {
+                GCHandle handle = GCHandle.Alloc(bytes, GCHandleType.Pinned);
+                try
+                {
+                    IntPtr bytePtr = handle.AddrOfPinnedObject();
+                    Marshal.StructureToPtr(obj, bytePtr, false);
+                }
+                catch { return false; }
+                finally { handle.Free(); }
+                return true;
+            }
             // structs?
 
             bytes = stream.ToArray();
@@ -864,9 +899,11 @@ namespace ProcessModder
                 result = reader.ReadString();
             else if ( typeof(T) == typeof(bool) )
                 result = reader.ReadBoolean();
-            else if ( typeof(T) == typeof(object) )
-                return false; // object?
-            // struct?
+            else
+            {
+                obj = (T)Marshal.PtrToStructure((IntPtr)bytes, typeof(T));
+                return true;
+            }
 
             obj = (T)result;
             return true;
@@ -991,7 +1028,7 @@ namespace ProcessModder
             public ushort AceCount;
             public ushort Sbz2;*/
         }
-        
+
         /// <summary>
         /// A structure mirroring the windows PROCESSENTRY32 struct
         /// </summary>
